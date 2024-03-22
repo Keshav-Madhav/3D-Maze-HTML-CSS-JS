@@ -38,6 +38,18 @@ let cellHeight = canvas.height / mazeRows;
 let mazeStartX = cellWidth;
 let mazeStartY = cellHeight;
 
+// Field of view for the light source
+let fov = 60;
+let viewDirection = 0;
+
+// Variables to store the previous mouse position
+let prevMouseX = 0;
+
+// Movement speed for the light source
+const moveSpeed = 10;
+
+// Sensitivity factor for rotation speed
+const sensitivity = 1;
 
 // Class to create boundaries
 class Boundaries {
@@ -136,6 +148,10 @@ class Rays {
     this.update(this.pos.x + this.dir.x * 10, this.pos.y + this.dir.y * 10);
   }
 
+  setAngle(angle){
+    this.dir = {x: Math.cos(angle), y: Math.sin(angle)};
+  }
+
   // Method to update ray direction
   update(x, y){
     this.dir.x = x - this.pos.x;
@@ -189,9 +205,10 @@ class lightSource {
     this.pos = {x: x, y: y};
     this.rays = [];
     this.color = color;
+    this.heading = 0;
 
     // Generate rays for the light source
-    for (let i = 0; i < 360; i += (360 / rayCount)){
+    for (let i = viewDirection - fov/2; i < viewDirection + fov/2; i += (360 / rayCount)){
       this.rays.push(new Rays(this.pos.x, this.pos.y, i * Math.PI / 180, rayColor));
     }
   }
@@ -241,18 +258,37 @@ class lightSource {
     let newPos = { x: x, y: y };
     this.pos = newPos;
   }
+
+  rotate(angle) {
+    this.heading += angle;
+    for (let ray of this.rays) {
+      ray.update(this.pos.x + Math.cos(ray.dir.x + angle), this.pos.y + Math.sin(ray.dir.y + angle));
+    }
+  }
 }
 
 lights.push(new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)'));
 
-// Event listener to move light source with mouse
-canvas.addEventListener('mousemove', (e) => {
-  lights[i].move(e.clientX, e.clientY);
-});
-
-// Event listener for keyboard input
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'r') {
+  const moveDirection = Math.atan2(Math.sin(viewDirection * Math.PI / 180), Math.cos(viewDirection * Math.PI / 180));
+
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+    lights[i].pos.x += moveSpeed * Math.cos(moveDirection);
+    lights[i].pos.y += moveSpeed * Math.sin(moveDirection);
+  } 
+  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+    lights[i].pos.x -= moveSpeed * Math.cos(moveDirection);
+    lights[i].pos.y -= moveSpeed * Math.sin(moveDirection);
+  }
+  else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+    lights[i].pos.x -= moveSpeed * Math.sin(moveDirection);
+    lights[i].pos.y += moveSpeed * Math.cos(moveDirection);
+  }
+  else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+    lights[i].pos.x += moveSpeed * Math.sin(moveDirection);
+    lights[i].pos.y -= moveSpeed * Math.cos(moveDirection);
+  }
+  else if (e.key === 'r') {
     lights = [];
     i = 0;
     hue = 0;
@@ -266,31 +302,34 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Event listener to handle touch events
-canvas.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  const touch = e.touches[0];
-  
-  tapTime = Date.now();
-  tapTimeout = setTimeout(() => {
-    // Single tap to move light source
-    lights[i].move(touch.clientX, touch.clientY);
-    tapTime = 0;
-  }, 200);
-});
 
-// Event listener to move light source with touch
-canvas.addEventListener('touchmove', (e) => {
-  e.preventDefault();
-  const touch = e.touches[0];
-  lights[i].move(touch.clientX, touch.clientY);
-});
+canvas.addEventListener('mousemove', (e) => {
+  // Calculate the change in mouse position since the last event
+  const deltaX = e.clientX - prevMouseX;
 
-function changeMaxRayCount(count){
-  maxRayCount = count;
-  rayCount = rayNumber;
-  return 'Max ray count changed to ' + count;
-}
+  // Update the view direction based on mouse movement
+  if (deltaX !== 0) {
+    viewDirection += Math.sign(deltaX) * sensitivity;
+    
+    // Ensure the view direction stays within 0 to 360 degrees
+    if (viewDirection < 0) {
+      viewDirection += 360;
+    } else if (viewDirection >= 360) {
+      viewDirection -= 360;
+    }
+
+    // Update the rays for all light sources with the new FOV
+    for (let light of lights) {
+      light.rays = []; // Clear existing rays
+      for (let i = viewDirection - fov/2; i < viewDirection + fov/2; i += (360 / rayCount)) {
+        light.rays.push(new Rays(light.pos.x, light.pos.y, i * Math.PI / 180, 'rgba(255, 255, 0, 0.8)'));
+      }
+    }
+  }
+
+  // Update the previous mouse position
+  prevMouseX = e.clientX;
+});
 
 // Function to continuously draw on canvas
 function draw() {
