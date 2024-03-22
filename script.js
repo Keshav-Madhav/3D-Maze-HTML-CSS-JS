@@ -239,86 +239,16 @@ class lightSource {
 
   move(x, y) {
     let newPos = { x: x, y: y };
-  
-    // Check for collisions with all boundaries
-    for (let boundary of boundaries) {
-      if (this.checkCollision(this.pos, newPos, boundary)) {
-        return; // If a collision is detected, don't move the light source
-      }
-    }
-  
-    // If no collisions are detected, move the light source
     this.pos = newPos;
-  }
-  
-  // Method to check for a collision between the movement path and a boundary
-  checkCollision(from, to, boundary) {
-    function intersect(p1, p2, p3, p4) {
-      let dx12 = p2.x - p1.x;
-      let dy12 = p2.y - p1.y;
-      let dx34 = p4.x - p3.x;
-      let dy34 = p4.y - p3.y;
-  
-      let denominator = (dy12 * dx34 - dx12 * dy34);
-  
-      if (denominator == 0) return null; // Lines are parallel
-  
-      let t1 = ((p1.x - p3.x) * dy34 + (p3.y - p1.y) * dx34) / denominator;
-      let t2 = ((p3.x - p1.x) * dy12 + (p1.y - p3.y) * dx12) / -denominator;
-  
-      if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= 1) {
-        return {
-          x: p1.x + dx12 * t1,
-          y: p1.y + dy12 * t1
-        }; // Intersection point
-      }
-  
-      return null;
-    }
-  
-    let p1 = from;
-    let p2 = to;
-    let p3 = { x: boundary.a.x, y: boundary.a.y };
-    let p4 = { x: boundary.b.x, y: boundary.b.y };
-    return intersect(p1, p2, p3, p4) !== null;
-  }
-  
-
-  // Method to update the number of rays for the light source
-  updateRayCount(rayCount) {
-    this.rays = [];
-    for (let i = 0; i < 360; i += (360 / rayCount)){
-      this.rays.push(new Rays(this.pos.x, this.pos.y, i * Math.PI / 180, this.rayColor));
-    }
   }
 }
 
-lights.push(new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)', 3200));
+lights.push(new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)'));
 
 // Event listener to move light source with mouse
 canvas.addEventListener('mousemove', (e) => {
   lights[i].move(e.clientX, e.clientY);
 });
-
-// Event listener to add new light source or change ray count with mouse click
-canvas.addEventListener('click', (e) => {
-  // Decrease ray count of old light source
-  lights[i].updateRayCount(640);
-
-  // Increase index
-  i++;
-
-  hue += 10;
-  const rayColor = `hsla(${hue}, 100%, 50%, 0.8)`;
-  const lightColor = `hsla(${hue}, 100%, 50%, 0.03)`;
-
-  // Add new light source with increased ray count
-  lights.push(new lightSource(e.clientX, e.clientY, lightColor, rayColor, 3200));
-
-  // Make sure the new light source is the active one
-  i = lights.length - 1;
-});
-
 
 // Event listener for keyboard input
 window.addEventListener('keydown', (e) => {
@@ -326,35 +256,7 @@ window.addEventListener('keydown', (e) => {
     lights = [];
     i = 0;
     hue = 0;
-    lights.push(new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)', 3200));
-  }
-  else if ((e.key === 'ArrowUp' || e.key === 'w') && rayCount < maxRayCount) {
-    // Increase ray count
-    rayCount += 100;
-    for (let light of lights) {
-      light.updateRayCount(rayCount);
-    }
-  }
-  else if ((e.key === 'ArrowDown' || e.key === 's') && rayCount > 100) {
-    // Decrease ray count
-    rayCount -= 100;
-    for (let light of lights) {
-      light.updateRayCount(rayCount);
-    }
-  }
-  if (e.key === 'ArrowLeft' || e.key === 'a') {
-    if (lights.length > 1) {
-      lights[i].updateRayCount(640); // Decrease ray count of old light source
-      i = (i === 0) ? lights.length - 1 : i - 1;
-      lights[i].updateRayCount(3200); // Increase ray count of new light source
-    }
-  }
-  else if (e.key === 'ArrowRight' || e.key === 'd') {
-    if (lights.length > 1) {
-      lights[i].updateRayCount(640); // Decrease ray count of old light source
-      i = (i === lights.length - 1) ? 0 : i + 1;
-      lights[i].updateRayCount(3200); // Increase ray count of new light source
-    }
+    lights.push(new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)'));
   }
   else if (e.key === 't') {
     wallColor = (wallColor === 'black') ? 'white' : 'black';
@@ -369,29 +271,12 @@ canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   const touch = e.touches[0];
   
-  if (tapTime === 0) {
-    tapTime = Date.now();
-    tapTimeout = setTimeout(() => {
-      // Single tap to move light source
-      lights[i].move(touch.clientX, touch.clientY);
-      tapTime = 0;
-    }, 200);
-  } else {
-    clearTimeout(tapTimeout);
+  tapTime = Date.now();
+  tapTimeout = setTimeout(() => {
+    // Single tap to move light source
+    lights[i].move(touch.clientX, touch.clientY);
     tapTime = 0;
-    i++;
-    rayCount = rayNumber / (lights.length / 2);
-
-    // Update ray count for existing light sources
-    for (let light of lights) {
-      light.updateRayCount(rayCount);
-    }
-
-    hue += 10;
-    const rayColor = `hsla(${hue}, 100%, 50%, 0.8)`;
-    const lightColor = `hsla(${hue}, 100%, 50%, 0.03)`;
-    lights.push(new lightSource(touch.clientX, touch.clientY, lightColor, rayColor));
-  }
+  }, 200);
 });
 
 // Event listener to move light source with touch
