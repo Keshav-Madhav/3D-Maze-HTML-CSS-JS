@@ -2,11 +2,17 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
+const canvas2 = document.getElementById('canvas2');
+const ctx2 = canvas.getContext('2d');
+
 // Resize the canvas to fit the window
 window.addEventListener('resize', resizeCanvas);
 function resizeCanvas() {
   canvas.width = window.innerWidth - 2;
   canvas.height = window.innerHeight - 1;
+
+  canvas2.width = window.innerWidth - 2;
+  canvas2.height = window.innerHeight - 1;
 }
 resizeCanvas();
 
@@ -71,64 +77,80 @@ class Boundaries {
   }
 }
 
-// Initialize maze with all walls
-let maze = new Array(mazeRows);
-for (let i = 0; i < mazeRows; i++) {
-  maze[i] = new Array(mazeCols).fill(1);
-}
+// // Initialize maze with all walls
+// let maze = new Array(mazeRows);
+// for (let i = 0; i < mazeRows; i++) {
+//   maze[i] = new Array(mazeCols).fill(1);
+// }
 
-// Recursive function to carve paths
-function carve(x, y) {
-  // Define the carving directions
-  let directions = [
-    [-1, 0], // Up
-    [1, 0], // Down
-    [0, -1], // Left
-    [0, 1] // Right
-  ];
+// // Recursive function to carve paths
+// function carve(x, y) {
+//   // Define the carving directions
+//   let directions = [
+//     [-1, 0], // Up
+//     [1, 0], // Down
+//     [0, -1], // Left
+//     [0, 1] // Right
+//   ];
 
-  // Randomize the directions
-  directions.sort(() => Math.random() - 0.5);
+//   // Randomize the directions
+//   directions.sort(() => Math.random() - 0.5);
 
-  // Try carving in each direction
-  for (let [dx, dy] of directions) {
-    let nx = x + dx * 2;
-    let ny = y + dy * 2;
+//   // Try carving in each direction
+//   for (let [dx, dy] of directions) {
+//     let nx = x + dx * 2;
+//     let ny = y + dy * 2;
 
-    if (nx >= 0 && nx < mazeRows && ny >= 0 && ny < mazeCols && maze[nx][ny] === 1) {
-      maze[x + dx][y + dy] = 0;
-      maze[nx][ny] = 0;
-      carve(nx, ny);
-    }
-  }
-}
+//     if (nx >= 0 && nx < mazeRows && ny >= 0 && ny < mazeCols && maze[nx][ny] === 1) {
+//       maze[x + dx][y + dy] = 0;
+//       maze[nx][ny] = 0;
+//       carve(nx, ny);
+//     }
+//   }
+// }
 
-// Start carving from the upper-left corner
-carve(1, 1);
-// Generate optimized boundaries for the maze
-for (let i = 0; i < mazeRows; i++) {
-  for (let j = 0; j < mazeCols; j++) {
-    if (maze[i][j] === 1) {
-      let x1 = j * cellWidth;
-      let y1 = i * cellHeight;
-      let x2 = (j + 1) * cellWidth;
-      let y2 = (i + 1) * cellHeight;
+// // Start carving from the upper-left corner
+// carve(1, 1);
+// // Generate optimized boundaries for the maze
+// for (let i = 0; i < mazeRows; i++) {
+//   for (let j = 0; j < mazeCols; j++) {
+//     if (maze[i][j] === 1) {
+//       let x1 = j * cellWidth;
+//       let y1 = i * cellHeight;
+//       let x2 = (j + 1) * cellWidth;
+//       let y2 = (i + 1) * cellHeight;
 
-      // Check the neighboring cells
-      if (i > 0 && maze[i - 1][j] === 0) { // Top
-        boundaries.push(new Boundaries(x1, y1, x2, y1, wallColor));
-      }
-      if (j > 0 && maze[i][j - 1] === 0) { // Left
-        boundaries.push(new Boundaries(x1, y1, x1, y2, wallColor));
-      }
-      if (j < mazeCols - 1 && maze[i][j + 1] === 0) { // Right
-        boundaries.push(new Boundaries(x2, y1, x2, y2, wallColor));
-      }
-      if (i < mazeRows - 1 && maze[i + 1][j] === 0) { // Bottom
-        boundaries.push(new Boundaries(x1, y2, x2, y2, wallColor));
-      }
-    }
-  }
+//       // Check the neighboring cells
+//       if (i > 0 && maze[i - 1][j] === 0) { // Top
+//         boundaries.push(new Boundaries(x1, y1, x2, y1, wallColor));
+//       }
+//       if (j > 0 && maze[i][j - 1] === 0) { // Left
+//         boundaries.push(new Boundaries(x1, y1, x1, y2, wallColor));
+//       }
+//       if (j < mazeCols - 1 && maze[i][j + 1] === 0) { // Right
+//         boundaries.push(new Boundaries(x2, y1, x2, y2, wallColor));
+//       }
+//       if (i < mazeRows - 1 && maze[i + 1][j] === 0) { // Bottom
+//         boundaries.push(new Boundaries(x1, y2, x2, y2, wallColor));
+//       }
+//     }
+//   }
+// }
+
+// Draw boundaries around the canvas
+boundaries.push(new Boundaries(0, 0, canvas.width, 0, 'black'));
+boundaries.push(new Boundaries(0, 0, 0, canvas.height, 'black'));
+boundaries.push(new Boundaries(0, canvas.height, canvas.width, canvas.height, 'black'));
+boundaries.push(new Boundaries(canvas.width, 0, canvas.width, canvas.height, 'black'));
+
+
+// draw 5 random boundaries
+for (let i = 0; i < 5; i++) {
+  let x1 = Math.random() * canvas.width;
+  let y1 = Math.random() * canvas.height;
+  let x2 = Math.random() * canvas.width;
+  let y2 = Math.random() * canvas.height;
+  boundaries.push(new Boundaries(x1, y1, x2, y2, wallColor));
 }
 
 // Class to create rays
