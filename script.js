@@ -22,7 +22,7 @@ let rays = [];
 let light;
 
 // Number of rays to cast
-let rayCount = 500; // Current number of rays being cast
+let rayCount = 800; // Current number of rays being cast
 
 // Variables for touch event handling
 let tapTime = 0;
@@ -42,7 +42,7 @@ let mazeStartX = cellWidth;
 let mazeStartY = cellHeight;
 
 // Field of view for the light source
-let fov = 55;
+let fov = 60;
 const fovHalf = fov / 2;
 let viewDirection = 0;
 
@@ -61,8 +61,11 @@ let moveLeft = false;
 let moveRight = false;
 
 // Sensitivity factor for rotation speed
-const sensitivity = 5;
+const sensitivity = 8;
 let prevTime = performance.now(); // Track the previous time
+
+// Toggle top-down view
+let topDown = false;
 
 // Class to create boundaries
 class Boundaries {
@@ -115,7 +118,7 @@ function carve(x, y) {
 }
 
 // Start carving from the upper-left corner
-carve(1, 1);
+carve(0, 0);
 // Generate optimized boundaries for the maze
 for (let i = 0; i < mazeRows; i++) {
   for (let j = 0; j < mazeCols; j++) {
@@ -328,11 +331,23 @@ class lightSource {
   }
 }
 
-light = new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)');
+light = new lightSource(mazeStartX - 30, mazeStartY - 30, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)');
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'r') {
-    light = new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)');
+    light = new lightSource(mazeStartX - 30, mazeStartY - 30, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)');
+  } 
+  else if (e.key === 'p') {
+    topDown = !topDown;
+    if(topDown){
+      canvas2.style.display = 'block';
+      canvas.style.display = 'none';
+    }
+    else{
+      
+      canvas2.style.display = 'none';
+      canvas.style.display = 'block';
+    }
   }
 });
 
@@ -441,7 +456,7 @@ function draw() {
     boundary.draw();
   }
 
-  drawFPS(ctx2);
+  drawFPS(topDown ? ctx2 : ctx);
   
   requestAnimationFrame(draw);
 }
