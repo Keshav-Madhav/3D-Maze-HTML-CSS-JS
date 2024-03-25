@@ -8,10 +8,10 @@ const ctx2 = canvas2.getContext('2d');
 // Resize the canvas to fit the window
 window.addEventListener('resize', resizeCanvas);
 function resizeCanvas() {
-  canvas.width = window.innerWidth / 2;
+  canvas.width = window.innerWidth;
   canvas.height = window.innerHeight - 1;
 
-  canvas2.width = window.innerWidth / 2;
+  canvas2.width = window.innerWidth;
   canvas2.height = window.innerHeight - 1;
 }
 resizeCanvas();
@@ -32,8 +32,8 @@ let tapTimeout;
 let wallColor = 'white';
 
 // Maze dimensions
-let mazeRows = 21;
-let mazeCols = 21;
+let mazeRows = 11;
+let mazeCols = 23;
 let cellWidth = canvas.width / mazeCols;
 let cellHeight = canvas.height / mazeRows;
 
@@ -42,8 +42,13 @@ let mazeStartX = cellWidth;
 let mazeStartY = cellHeight;
 
 // Field of view for the light source
-let fov = 45;
+let fov = 55;
+const fovHalf = fov / 2;
 let viewDirection = 0;
+
+// Define scaling factors to adjust wall heights and brightness separately
+const heightScaleFactor = 0.02;
+const brightnessScaleFactor = 2; 
 
 // Variables to store the previous mouse position
 let prevMouseX = 0;
@@ -387,38 +392,45 @@ function map(value, start1, stop1, start2, stop2) {
 
 function draw3D(scene) {
   const w = canvas2.width / scene.length;
-  const sceneW = canvas2.width; // maximum distance
-  const sceneH = canvas2.height / 1.2; // maximum height of a rectangle
-  const minWallHeight = 10; // Minimum wall height
-
-  const fovHalf = fov / 2; // half of the field of view angle
 
   for (let i = 0; i < scene.length; i++) {
     const rayAngle = viewDirection + map(i, 0, scene.length - 1, -fovHalf, fovHalf); // Angle of the ray
-    const correctedHeight = scene[i] * Math.cos((rayAngle - viewDirection) * Math.PI / 180); // Apply correction factor
-    const logHeight = Math.log(correctedHeight + 1); // Apply logarithmic scaling, adding 1 to prevent logarithm of zero
+    const perpendicularDistance = scene[i] * Math.cos((rayAngle - viewDirection) * Math.PI / 180); // Calculate perpendicular distance
 
-    // Scale the logarithmic height to fit within the sceneH range
-    const scaledHeight = map(logHeight, 0, Math.log(sceneW + 1), minWallHeight, sceneH);
+    // Apply the scaling factor to adjust wall heights
+    const wallHeight = canvas2.height / (perpendicularDistance * heightScaleFactor);
+    const clippedHeight = Math.min(canvas2.height, wallHeight);
 
-    const sq = scaledHeight * scaledHeight;
-    const wSq = sceneW * sceneW;
-    const b = map(sq, 0, wSq / 6, 255, 180);
-    const h = map(scaledHeight, 0, sceneW, sceneH, 0);
+    // Calculate darkness based on distance and apply brightness scaling
+    const brightness = map(perpendicularDistance*brightnessScaleFactor, 0, canvas2.width, 255, 30);
 
-    ctx2.fillStyle = `rgba(${b}, ${b}, ${b}, 1)`;
-    ctx2.fillRect(i * w, canvas2.height / 2 - h / 2, w + 1, h);
+    // Draw the wall segment with adjusted brightness
+    ctx2.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+    ctx2.fillRect(i * w, canvas2.height / 2 - clippedHeight / 2, w + 1, clippedHeight);
   }
 }
 
-
-// Function to continuously draw on canvas
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx2.clearRect(0, 0, canvas.width, canvas.height);
   
-  ctx2.fillStyle = 'lightblue';
+  // Create gradient for the top rectangle
+  let gradient1 = ctx2.createLinearGradient(0, 0, 0, canvas.height / 2);
+  gradient1.addColorStop(0, '#444444');
+  gradient1.addColorStop(0.7, '#222222');
+  gradient1.addColorStop(1, '#111111');
+  
+  ctx2.fillStyle = gradient1;
   ctx2.fillRect(0, 0, canvas.width, canvas.height / 2);
+  
+  // Create gradient for the bottom rectangle
+  let gradient2 = ctx2.createLinearGradient(0, canvas.height / 2, 0, canvas.height);
+  gradient2.addColorStop(0, '#001000');
+  gradient2.addColorStop(0.3, '#006000');
+  gradient2.addColorStop(1, '#006600');
+  
+  ctx2.fillStyle = gradient2;
+  ctx2.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
 
   light.draw();
   const scene = light.spread(boundaries);
