@@ -18,7 +18,7 @@ function drawFPS(context) {
 
   // Draw FPS on canvas
   context.clearRect(0, 0, 60, 15); // Clear the area where FPS will be drawn
-  context.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  context.fillStyle = 'lightblue';
   context.fillRect(0, 0, 60, 15); // Background for FPS display
   context.fillStyle = 'black';
   context.font = '11px sans-serif';

@@ -29,7 +29,7 @@ let tapTime = 0;
 let tapTimeout;
 
 // Wall color
-let wallColor = 'black';
+let wallColor = 'white';
 
 // Maze dimensions
 let mazeRows = 21;
@@ -329,12 +329,6 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'r') {
     light = new lightSource(mazeStartX + 10, mazeStartY + 10, 'rgba(255, 255, 237, 0.03)', 'rgba(255, 255, 0, 0.8)');
   }
-  else if (e.key === 't') {
-    wallColor = (wallColor === 'black') ? 'white' : 'black';
-    for (let boundary of boundaries) {
-      boundary.color = wallColor;
-    }
-  }
 });
 
 window.addEventListener('keydown', (e) => {
@@ -391,28 +385,45 @@ function map(value, start1, stop1, start2, stop2) {
   return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
 }
 
-// Function to continuously draw on canvas
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx2.clearRect(0, 0, canvas.width, canvas.height);
-
-  light.draw();
-  const scene = light.spread(boundaries);
-
+function draw3D(scene) {
   const w = canvas2.width / scene.length;
   const sceneW = canvas2.width; // maximum distance
-  const sceneH = canvas2.height; // maximum height of a rectangle
+  const sceneH = canvas2.height / 1.2; // maximum height of a rectangle
+  const minWallHeight = 10; // Minimum wall height
+
+  const fovHalf = fov / 2; // half of the field of view angle
 
   for (let i = 0; i < scene.length; i++) {
-    const sq = scene[i] * scene[i];
+    const rayAngle = viewDirection + map(i, 0, scene.length - 1, -fovHalf, fovHalf); // Angle of the ray
+    const correctedHeight = scene[i] * Math.cos((rayAngle - viewDirection) * Math.PI / 180); // Apply correction factor
+    const logHeight = Math.log(correctedHeight + 1); // Apply logarithmic scaling, adding 1 to prevent logarithm of zero
+
+    // Scale the logarithmic height to fit within the sceneH range
+    const scaledHeight = map(logHeight, 0, Math.log(sceneW + 1), minWallHeight, sceneH);
+
+    const sq = scaledHeight * scaledHeight;
     const wSq = sceneW * sceneW;
-    const b = map(sq, 0, wSq/6, 255, 0);
-    const h = map(scene[i], 0, sceneW, sceneH, 0);
+    const b = map(sq, 0, wSq / 6, 255, 180);
+    const h = map(scaledHeight, 0, sceneW, sceneH, 0);
 
     ctx2.fillStyle = `rgba(${b}, ${b}, ${b}, 1)`;
     ctx2.fillRect(i * w, canvas2.height / 2 - h / 2, w + 1, h);
   }
+}
 
+
+// Function to continuously draw on canvas
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx2.clearRect(0, 0, canvas.width, canvas.height);
+  
+  ctx2.fillStyle = 'lightblue';
+  ctx2.fillRect(0, 0, canvas.width, canvas.height / 2);
+
+  light.draw();
+  const scene = light.spread(boundaries);
+
+  draw3D(scene);
 
   for (let boundary of boundaries){
     boundary.draw();
