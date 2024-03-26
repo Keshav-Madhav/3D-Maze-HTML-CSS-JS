@@ -29,7 +29,10 @@ let tapTime = 0;
 let tapTimeout;
 
 // Wall color
-let wallColor = 'white';
+let wallColor = 'rgb(244,164,96)'; // Sandy Brown
+let edgeColor = 'rgb(139,69,19)'; // Saddle Brown
+let skyColor = 'rgb(135,206,235)'; // Sky Blue
+let groundColor = 'rgb(85,107,47)'; // Dark Olive Green
 
 // Maze dimensions
 let mazeRows = 11;
@@ -48,7 +51,7 @@ let viewDirection = 0;
 
 // Define scaling factors to adjust wall heights and brightness separately
 const heightScaleFactor = 0.02;
-const brightnessScaleFactor = 2; 
+const brightnessScaleFactor = 2.5; 
 
 // Variables to store the previous mouse position
 let prevMouseX = 0;
@@ -146,10 +149,10 @@ for (let i = 0; i < mazeRows; i++) {
 }
 
 // Draw boundaries around the canvas
-boundaries.push(new Boundaries(0, 0, canvas.width, 0, 'black'));
-boundaries.push(new Boundaries(0, 0, 0, canvas.height, 'black'));
-boundaries.push(new Boundaries(0, canvas.height, canvas.width, canvas.height, 'black'));
-boundaries.push(new Boundaries(canvas.width, 0, canvas.width, canvas.height, 'black'));
+boundaries.push(new Boundaries(0, 0, canvas.width, 0, edgeColor));
+boundaries.push(new Boundaries(0, 0, 0, canvas.height, edgeColor));
+boundaries.push(new Boundaries(0, canvas.height, canvas.width, canvas.height, edgeColor));
+boundaries.push(new Boundaries(canvas.width, 0, canvas.width, canvas.height, edgeColor));
 
 
 // // draw 5 random boundaries
@@ -288,32 +291,33 @@ class lightSource {
   spread(boundaries) {
     const scene = [];
     for (let i = 0; i < this.rays.length; i++) {
-        const ray = this.rays[i];
-        let closest = null;
-        let record = Infinity;
+      const ray = this.rays[i];
+      let closest = null;
+      let record = Infinity;
+      let color = 'rgb(0, 0, 0)'
 
-        for (let boundary of boundaries) {
-            const point = ray.cast(boundary);
-            if (point) {
-                let distance = Math.hypot(this.pos.x - point.x, this.pos.y - point.y);
-                const angle = this.heading - ray.dir.x;
-                distance *= Math.cos(angle);
-                if (distance < record) {
-                    record = distance;
-                    closest = point;
-                }
-            }
+      for (let boundary of boundaries) {
+        const point = ray.cast(boundary);
+        if (point) {
+          let distance = Math.hypot(this.pos.x - point.x, this.pos.y - point.y);
+          const angle = this.heading - ray.dir.x;
+          distance *= Math.cos(angle);
+          if (distance < record) {
+            record = distance;
+            closest = point;
+            color = boundary.color;
+          }
         }
+      }
 
-        if (closest) {
-            ctx.beginPath();
-            ctx.moveTo(this.pos.x, this.pos.y);
-            ctx.lineTo(closest.x, closest.y);
-            ctx.strokeStyle = this.color;
-            ctx.stroke();
-        }
-
-        scene[i] = record;
+      if (closest) {
+        ctx.beginPath();
+        ctx.moveTo(this.pos.x, this.pos.y);
+        ctx.lineTo(closest.x, closest.y);
+        ctx.strokeStyle = this.color;
+        ctx.stroke();
+      }
+      scene[i] = [record, color];
     }
     return scene;
   }
@@ -410,17 +414,25 @@ function draw3D(scene) {
 
   for (let i = 0; i < scene.length; i++) {
     const rayAngle = viewDirection + map(i, 0, scene.length - 1, -fovHalf, fovHalf); // Angle of the ray
-    const perpendicularDistance = scene[i] * Math.cos((rayAngle - viewDirection) * Math.PI / 180); // Calculate perpendicular distance
+    const perpendicularDistance = scene[i][0] * Math.cos((rayAngle - viewDirection) * Math.PI / 180); // Calculate perpendicular distance
 
     // Apply the scaling factor to adjust wall heights
     const wallHeight = canvas2.height / (perpendicularDistance * heightScaleFactor);
     const clippedHeight = Math.min(canvas2.height, wallHeight);
 
+    // Extract the RGB values from the color string
+    let [r, g, b] = scene[i][1].replace('rgb(', '').replace(')', '').split(',').map(Number);
+
     // Calculate darkness based on distance and apply brightness scaling
     const brightness = map(perpendicularDistance*brightnessScaleFactor, 0, canvas2.width, 255, 30);
 
+    // Adjust the RGB values based on the brightness
+    r = Math.max(0, Math.min(255, r * brightness / 255));
+    g = Math.max(0, Math.min(255, g * brightness / 255));
+    b = Math.max(0, Math.min(255, b * brightness / 255));
+
     // Draw the wall segment with adjusted brightness
-    ctx2.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+    ctx2.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
     ctx2.fillRect(i * w, canvas2.height / 2 - clippedHeight / 2, w + 1, clippedHeight);
   }
 }
