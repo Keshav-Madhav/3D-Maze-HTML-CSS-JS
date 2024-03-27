@@ -57,14 +57,14 @@ const brightnessScaleFactor = 2.5;
 let prevMouseX = 0;
 
 // Movement for the light source
-const moveSpeed = 0.002;
+const moveSpeed = 0.0015;
 let moveUp = false;
 let moveDown = false;
 let moveLeft = false;
 let moveRight = false;
 
 // Sensitivity factor for rotation speed
-const sensitivity = 8;
+const sensitivity = 3;
 let prevTime = performance.now(); // Track the previous time
 
 // Toggle top-down view
