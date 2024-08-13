@@ -68,7 +68,18 @@ const sensitivity = 3;
 let prevTime = performance.now(); // Track the previous time
 
 // Toggle top-down view
-let topDown = false;
+let topDown = true;
+if(topDown){
+  canvas2.style.display = 'block';
+  canvas.style.display = 'none';
+}
+else{
+  canvas2.style.display = 'none';
+  canvas.style.display = 'block';
+}
+
+// Desried frames per second
+const desiredFPS = 60;
 
 // Class to create boundaries
 class Boundaries {
@@ -348,7 +359,6 @@ window.addEventListener('keydown', (e) => {
       canvas.style.display = 'none';
     }
     else{
-      
       canvas2.style.display = 'none';
       canvas.style.display = 'block';
     }
@@ -469,8 +479,6 @@ function draw() {
   }
 
   drawFPS(topDown ? ctx2 : ctx);
-  
-  requestAnimationFrame(draw);
 }
 
-draw();
+createConstantFPSGameLoop(desiredFPS, draw);
