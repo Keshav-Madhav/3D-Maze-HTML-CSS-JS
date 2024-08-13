@@ -9,10 +9,10 @@ const ctx2 = canvas2.getContext('2d');
 window.addEventListener('resize', resizeCanvas);
 function resizeCanvas() {
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight - 1;
+  canvas.height = window.innerHeight;
 
   canvas2.width = window.innerWidth;
-  canvas2.height = window.innerHeight - 1;
+  canvas2.height = window.innerHeight;
 }
 resizeCanvas();
 
@@ -31,8 +31,6 @@ let tapTimeout;
 // Wall color
 let wallColor = 'rgb(244,164,96)'; // Sandy Brown
 let edgeColor = 'rgb(139,69,19)'; // Saddle Brown
-let skyColor = 'rgb(135,206,235)'; // Sky Blue
-let groundColor = 'rgb(85,107,47)'; // Dark Olive Green
 
 // Maze dimensions
 let mazeRows = 11;
@@ -57,7 +55,7 @@ const brightnessScaleFactor = 2.5;
 let prevMouseX = 0;
 
 // Movement for the light source
-const moveSpeed = 0.0015;
+let moveSpeed = 0.0015;
 let moveUp = false;
 let moveDown = false;
 let moveLeft = false;
@@ -82,7 +80,7 @@ else{
 }
 
 // Toggle texture display
-let showTexture = true;
+let showTexture = false;
 
 // Desried frames per second
 const desiredFPS = 60;
@@ -442,6 +440,10 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
     moveLeft = true;
   }
+
+  if(e.key === 'Shift'){
+    moveSpeed = 0.003;
+  }
 });
 
 window.addEventListener('keyup', (e) => {
@@ -453,6 +455,10 @@ window.addEventListener('keyup', (e) => {
     moveRight = false;
   } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
     moveLeft = false;
+  }
+
+  if(e.key === 'Shift'){
+    moveSpeed = 0.0015;
   }
 });
 
