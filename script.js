@@ -63,6 +63,9 @@ let moveDown = false;
 let moveLeft = false;
 let moveRight = false;
 
+// Collision radius for the light source
+const collisionRadius = 2;
+
 // Sensitivity factor for rotation speed
 const sensitivity = 3;
 let prevTime = performance.now(); // Track the previous time
@@ -248,24 +251,59 @@ class Rays {
 
   updatePos() {
     const moveDirection = Math.atan2(Math.sin(viewDirection * Math.PI / 180), Math.cos(viewDirection * Math.PI / 180));
-    const moveSpeedX = moveSpeed * Math.cos(moveDirection);
-    const moveSpeedY = moveSpeed * Math.sin(moveDirection);
+    const strafeDirection = moveDirection + Math.PI / 2; // Perpendicular to move direction
+  
+    let dx = 0;
+    let dy = 0;
   
     if (moveUp) {
-      light.pos.x += moveSpeedX;
-      light.pos.y += moveSpeedY;
+      dx += moveSpeed * Math.cos(moveDirection);
+      dy += moveSpeed * Math.sin(moveDirection);
     } 
     if (moveDown) {
-      light.pos.x -= moveSpeedX;
-      light.pos.y -= moveSpeedY;
-    }
-    if (moveLeft) {
-      light.pos.x += moveSpeedY;
-      light.pos.y -= moveSpeedX;
+      dx -= moveSpeed * Math.cos(moveDirection);
+      dy -= moveSpeed * Math.sin(moveDirection);
     }
     if (moveRight) {
-      light.pos.x -= moveSpeedY;
-      light.pos.y += moveSpeedX;
+      dx += moveSpeed * Math.cos(strafeDirection);
+      dy += moveSpeed * Math.sin(strafeDirection);
+    }
+    if (moveLeft) {
+      dx -= moveSpeed * Math.cos(strafeDirection);
+      dy -= moveSpeed * Math.sin(strafeDirection);
+    }
+  
+    let newX = light.pos.x + dx;
+    let newY = light.pos.y + dy;
+  
+    // Check horizontal movement
+    if (!isPointInWall(newX, light.pos.y)) {
+      light.pos.x = newX;
+    }
+  
+    // Check vertical movement
+    if (!isPointInWall(light.pos.x, newY)) {
+      light.pos.y = newY;
+    }
+  
+    // Additional collision checks for corners
+    const cornerChecks = [
+      {x: light.pos.x - collisionRadius, y: light.pos.y - collisionRadius},
+      {x: light.pos.x + collisionRadius, y: light.pos.y - collisionRadius},
+      {x: light.pos.x - collisionRadius, y: light.pos.y + collisionRadius},
+      {x: light.pos.x + collisionRadius, y: light.pos.y + collisionRadius}
+    ];
+  
+    for (let point of cornerChecks) {
+      if (isPointInWall(point.x, point.y)) {
+        // Push the player slightly away from the wall
+        const pushDistance = 1; // Adjust as needed
+        if (point.x < light.pos.x) light.pos.x += pushDistance;
+        if (point.x > light.pos.x) light.pos.x -= pushDistance;
+        if (point.y < light.pos.y) light.pos.y += pushDistance;
+        if (point.y > light.pos.y) light.pos.y -= pushDistance;
+        break;
+      }
     }
   }
 }
@@ -413,6 +451,19 @@ window.addEventListener('mousemove', (e) => {
     light.rays.push(new Rays(light.pos.x, light.pos.y, i * Math.PI / 180, 'rgba(255, 255, 0, 0.8)'));
   }
 });
+
+// Function to check if a point is within a wall
+function isPointInWall(x, y) {
+  const cellX = Math.floor(x / cellWidth);
+  const cellY = Math.floor(y / cellHeight);
+  
+  // Check if the point is within the maze bounds
+  if (cellX < 0 || cellX >= mazeCols || cellY < 0 || cellY >= mazeRows) {
+    return true; // Treat out-of-bounds as a wall
+  }
+  
+  return maze[cellY][cellX] === 1; // 1 represents a wall in your maze array
+}
 
 // Helper function to map a value from one range to another
 function map(value, start1, stop1, start2, stop2) {
