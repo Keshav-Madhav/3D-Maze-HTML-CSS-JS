@@ -81,15 +81,25 @@ else{
   canvas.style.display = 'block';
 }
 
+// Toggle texture display
+let showTexture = true;
+
 // Desried frames per second
 const desiredFPS = 60;
 
+// Load textures
+const textureImageWall = new Image();
+textureImageWall.src = 'wall_texture_1.jpg';
+const textureImageEdge = new Image();
+textureImageEdge.src = 'wall_texture_2.jpg';
+
 // Class to create boundaries
 class Boundaries {
-  constructor(x1, y1, x2, y2, color){
+  constructor(x1, y1, x2, y2, color, texture){
     this.a = {x: x1, y: y1};
     this.b = {x: x2, y: y2};
     this.color = color;
+    this.texture = texture;
   }
 
   // Method to draw boundaries
@@ -147,26 +157,26 @@ for (let i = 0; i < mazeRows; i++) {
 
       // Check the neighboring cells
       if (i > 0 && maze[i - 1][j] === 0) { // Top
-        boundaries.push(new Boundaries(x1, y1, x2, y1, wallColor));
+        boundaries.push(new Boundaries(x1, y1, x2, y1, wallColor, textureImageWall));
       }
       if (j > 0 && maze[i][j - 1] === 0) { // Left
-        boundaries.push(new Boundaries(x1, y1, x1, y2, wallColor));
+        boundaries.push(new Boundaries(x1, y1, x1, y2, wallColor, textureImageWall));
       }
       if (j < mazeCols - 1 && maze[i][j + 1] === 0) { // Right
-        boundaries.push(new Boundaries(x2, y1, x2, y2, wallColor));
+        boundaries.push(new Boundaries(x2, y1, x2, y2, wallColor, textureImageWall));
       }
       if (i < mazeRows - 1 && maze[i + 1][j] === 0) { // Bottom
-        boundaries.push(new Boundaries(x1, y2, x2, y2, wallColor));
+        boundaries.push(new Boundaries(x1, y2, x2, y2, wallColor, textureImageWall));
       }
     }
   }
 }
 
 // Draw boundaries around the canvas
-boundaries.push(new Boundaries(0, 0, canvas.width, 0, edgeColor));
-boundaries.push(new Boundaries(0, 0, 0, canvas.height, edgeColor));
-boundaries.push(new Boundaries(0, canvas.height, canvas.width, canvas.height, edgeColor));
-boundaries.push(new Boundaries(canvas.width, 0, canvas.width, canvas.height, edgeColor));
+boundaries.push(new Boundaries(0, 0, canvas.width, 0, edgeColor, textureImageEdge));
+boundaries.push(new Boundaries(0, 0, 0, canvas.height, edgeColor, textureImageEdge));
+boundaries.push(new Boundaries(0, canvas.height, canvas.width, canvas.height, edgeColor, textureImageEdge));
+boundaries.push(new Boundaries(canvas.width, 0, canvas.width, canvas.height, edgeColor, textureImageEdge));
 
 
 // // draw 5 random boundaries
@@ -343,7 +353,9 @@ class lightSource {
       const ray = this.rays[i];
       let closest = null;
       let record = Infinity;
+      let textureX = 0;
       let color = 'rgb(0, 0, 0)'
+      let texture = textureImageWall;
 
       for (let boundary of boundaries) {
         const point = ray.cast(boundary);
@@ -355,6 +367,20 @@ class lightSource {
             record = distance;
             closest = point;
             color = boundary.color;
+            texture = boundary.texture;
+
+            // Determine which part of the texture to use
+            if (Math.abs(boundary.b.x - boundary.a.x) > Math.abs(boundary.b.y - boundary.a.y)) {
+              // Horizontal wall, use x-coordinate
+              textureX = (point.x - boundary.a.x) / (boundary.b.x - boundary.a.x);
+            } else {
+              // Vertical wall, use y-coordinate
+              textureX = (point.y - boundary.a.y) / (boundary.b.y - boundary.a.y);
+            }
+
+            // Wrap the texture coordinate
+            textureX = textureX % 1;
+            if (textureX < 0) textureX += 1; // Ensure textureX is positive
           }
         }
       }
@@ -366,7 +392,7 @@ class lightSource {
         ctx.strokeStyle = this.color;
         ctx.stroke();
       }
-      scene[i] = [record, color];
+      scene[i] = [record, color, textureX, texture];
     }
     return scene;
   }
@@ -400,6 +426,9 @@ window.addEventListener('keydown', (e) => {
       canvas2.style.display = 'none';
       canvas.style.display = 'block';
     }
+  }
+  else if (e.key === 't') {
+    showTexture = !showTexture;
   }
 });
 
@@ -471,30 +500,43 @@ function map(value, start1, stop1, start2, stop2) {
 }
 
 function draw3D(scene) {
-  const w = canvas2.width / scene.length;
+  const w = canvas2.width / scene.length; // Width of each vertical strip on the screen
 
   for (let i = 0; i < scene.length; i++) {
     const rayAngle = viewDirection + map(i, 0, scene.length - 1, -fovHalf, fovHalf); // Angle of the ray
     const perpendicularDistance = scene[i][0] * Math.cos((rayAngle - viewDirection) * Math.PI / 180); // Calculate perpendicular distance
 
-    // Apply the scaling factor to adjust wall heights
+    // Calculate the wall height based on the perpendicular distance
     const wallHeight = canvas2.height / (perpendicularDistance * heightScaleFactor);
-    const clippedHeight = Math.min(canvas2.height, wallHeight);
-
-    // Extract the RGB values from the color string
-    let [r, g, b] = scene[i][1].replace('rgb(', '').replace(')', '').split(',').map(Number);
 
     // Calculate darkness based on distance and apply brightness scaling
     const brightness = map(perpendicularDistance*brightnessScaleFactor, 0, canvas2.width, 255, 30);
 
-    // Adjust the RGB values based on the brightness
-    r = Math.max(0, Math.min(255, r * brightness / 255));
-    g = Math.max(0, Math.min(255, g * brightness / 255));
-    b = Math.max(0, Math.min(255, b * brightness / 255));
+    if(!showTexture){
+      // Extract the RGB values from the color string
+      let [r, g, b] = scene[i][1].replace('rgb(', '').replace(')', '').split(',').map(Number);
 
-    // Draw the wall segment with adjusted brightness
-    ctx2.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-    ctx2.fillRect(i * w, canvas2.height / 2 - clippedHeight / 2, w + 1, clippedHeight);
+      // Adjust the RGB values based on the brightness
+      r = Math.max(0, Math.min(255, r * brightness / 255));
+      g = Math.max(0, Math.min(255, g * brightness / 255));
+      b = Math.max(0, Math.min(255, b * brightness / 255));
+
+      // Draw the wall segment with adjusted brightness
+      ctx2.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+      ctx2.fillRect(i * w, canvas2.height / 2 - wallHeight / 2, w + 1, wallHeight);
+    } else {
+      // Calculate the texture X coordinate (wrapping if needed)
+      let textureX = scene[i][2] * scene[i][3].width;
+      textureX = textureX % scene[i][3].width; // Wrap texture coordinate
+
+      // Draw the wall segment using the texture
+      ctx2.drawImage(
+        scene[i][3], // Image source
+        textureX, 0, 1, scene[i][3].height, // Source rectangle (1 pixel wide)
+        i * w, canvas2.height / 2 - wallHeight / 2, // Destination rectangle top-left
+        w + 1, wallHeight // Destination rectangle width and height
+      );
+    }
   }
 }
 
@@ -532,4 +574,15 @@ function draw() {
   drawFPS(topDown ? ctx2 : ctx);
 }
 
-createConstantFPSGameLoop(desiredFPS, draw);
+// Check if all textures are loaded
+let texturesLoaded = 0;
+const totalTextures = 2; // Update this value if you have more textures
+
+function checkTexturesLoaded() {
+  texturesLoaded++;
+  if (texturesLoaded === totalTextures) {
+    createConstantFPSGameLoop(desiredFPS, draw);
+  }
+}
+textureImageEdge.onload = checkTexturesLoaded;
+textureImageWall.onload = checkTexturesLoaded;
